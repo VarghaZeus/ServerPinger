@@ -18,6 +18,14 @@ bp = Blueprint("main", __name__)
 STATUS_ORDER = {"down": 0, "unknown": 1, "up": 2}
 
 
+def _back(fallback: str) -> str:
+    """Return to the page the action was triggered from, when it is one of ours."""
+    referrer = request.referrer or ""
+    if referrer.startswith(request.host_url):
+        return referrer
+    return fallback
+
+
 # ------------------------------------------------------------------ dashboard
 
 def _target_payload(target) -> dict:
@@ -72,6 +80,23 @@ def api_status():
 
 @bp.route("/api/version")
 def api_version():
+    return jsonify(updates.status())
+
+
+@bp.route("/api/update-check", methods=["POST"])
+def api_update_check():
+    """Force an update check now instead of waiting for the next scheduled one."""
+    if not settings.get_bool("update_check_enabled", True):
+        flash("Update checking is turned off on the Email settings page.", "error")
+    else:
+        updates.check()
+        info = updates.status()
+        if info["last_status"] == "ok":
+            flash("Update check: %s" % info["text"], "success")
+        else:
+            flash("Update check failed: %s" % (info["last_error"] or "unknown error"), "error")
+    if request.form.get("redirect"):
+        return redirect(_back(url_for("main.dashboard")))
     return jsonify(updates.status())
 
 
@@ -218,7 +243,16 @@ def target_delete(target_id: int):
         abort(404)
     models.delete_target(target_id)
     flash("Deleted %s." % target["name"], "success")
-    return redirect(url_for("main.targets"))
+    return redirect(_back(url_for("main.targets")))
+
+
+@bp.route("/targets/<int:target_id>/clone", methods=["POST"])
+def target_clone(target_id: int):
+    new_id = models.clone_target(target_id)
+    if new_id is None:
+        abort(404)
+    flash("Duplicated. Change the host, then save.", "success")
+    return redirect(url_for("main.target_edit", target_id=new_id))
 
 
 @bp.route("/targets/<int:target_id>/toggle", methods=["POST"])
@@ -227,9 +261,9 @@ def target_toggle(target_id: int):
     if target is None:
         abort(404)
     models.set_target_enabled(target_id, not target["enabled"])
-    flash("%s %s." % (target["name"], "disabled" if target["enabled"] else "enabled"),
+    flash("%s %s." % (target["name"], "paused" if target["enabled"] else "resumed"),
           "success")
-    return redirect(request.referrer or url_for("main.targets"))
+    return redirect(_back(url_for("main.targets")))
 
 
 @bp.route("/targets/<int:target_id>")

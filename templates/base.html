@@ -35,7 +35,11 @@
 
 <footer class="footer">
   ServerPinger &middot; v{{ footer_version }} &middot;
-  <span class="{{ 'update-available' if footer_update.update_available else '' }}">{{ footer_update.text }}</span>
+  <form method="post" action="{{ url_for('main.api_update_check') }}" class="inline footer-form">
+    <input type="hidden" name="redirect" value="1">
+    <button class="footer-link {{ 'update-available' if footer_update.update_available else '' }}"
+            title="{{ footer_update.last_error or 'Click to check the git remote for a newer release tag' }}">{{ footer_update.text }}</button>
+  </form>
   &middot; monitoring {{ footer_target_count }} target{{ '' if footer_target_count == 1 else 's' }}
 </footer>
 

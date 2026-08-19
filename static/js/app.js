@@ -115,9 +115,10 @@ var ServerPinger = (function () {
       if (!button) { return; }
       event.preventDefault();
       var id = button.getAttribute("data-id");
+      var isIcon = button.classList.contains("icon-btn");
       var original = button.textContent;
       button.disabled = true;
-      button.textContent = "Checking…";
+      if (isIcon) { button.classList.add("spinning"); } else { button.textContent = "Checking…"; }
       fetch("/api/targets/" + id + "/check", { method: "POST" })
         .then(function (response) { return response.json(); })
         .then(function (data) {
@@ -127,7 +128,7 @@ var ServerPinger = (function () {
         .catch(function () { /* ignore */ })
         .then(function () {
           button.disabled = false;
-          button.textContent = original;
+          if (isIcon) { button.classList.remove("spinning"); } else { button.textContent = original; }
           localizeTimestamps();
         });
     });

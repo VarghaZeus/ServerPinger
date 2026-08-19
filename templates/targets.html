@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import target_actions %}
 {% block title %}Targets &middot; ServerPinger{% endblock %}
 
 {% block content %}
@@ -15,7 +16,7 @@
     <thead>
       <tr>
         <th>Name</th><th>Host</th><th>Group</th><th>Check</th><th>Interval</th>
-        <th>Timeout</th><th>Threshold</th><th>Status</th><th></th>
+        <th>Timeout</th><th>Threshold</th><th>Status</th><th class="right">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -29,20 +30,15 @@
         <td class="mono">{{ t.timeout_seconds }}s</td>
         <td class="mono">{{ t.fail_threshold }}</td>
         <td><span class="pill pill-{{ (t.status or 'unknown') if t.enabled else 'unknown' }}">{{ ((t.status or 'unknown') if t.enabled else 'unknown')|upper }}</span></td>
-        <td class="right nowrap">
-          <a class="btn btn-small" href="{{ url_for('main.target_edit', target_id=t.id) }}">Edit</a>
-          <form method="post" action="{{ url_for('main.target_toggle', target_id=t.id) }}" class="inline">
-            <button class="btn btn-small">{{ 'Disable' if t.enabled else 'Enable' }}</button>
-          </form>
-          <form method="post" action="{{ url_for('main.target_delete', target_id=t.id) }}" class="inline"
-                onsubmit="return confirm('Delete {{ t.name }} and all of its history?');">
-            <button class="btn btn-small btn-danger">Delete</button>
-          </form>
-        </td>
+        <td class="right">{{ target_actions(t) }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>ServerPinger.bindCheckNow(function () { window.location.reload(); });</script>
 {% endblock %}

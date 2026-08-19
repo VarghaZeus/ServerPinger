@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import target_actions %}
 {% block title %}Dashboard &middot; ServerPinger{% endblock %}
 
 {% block content %}
@@ -27,7 +28,7 @@
     <thead>
       <tr>
         <th>Name</th><th>Host</th><th>Check</th><th>Status</th>
-        <th>Latency</th><th>Last checked</th><th>24h uptime</th><th></th>
+        <th>Latency</th><th>Last checked</th><th>24h uptime</th><th class="right">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -41,7 +42,7 @@
         <td class="cell-latency mono">{{ '%.1f ms'|format(t.last_latency_ms) if t.last_latency_ms is not none else '&mdash;'|safe }}</td>
         <td class="cell-checked"><span class="ts rel" data-utc="{{ t.last_checked_at or '' }}">{{ t.last_checked_at or 'never' }}</span></td>
         <td class="cell-uptime mono">{{ '%.2f%%'|format(t.uptime_24h) if t.uptime_24h is not none else '&mdash;'|safe }}</td>
-        <td class="right"><button class="btn btn-small check-now" data-id="{{ t.id }}">Check now</button></td>
+        <td class="right">{{ target_actions(t) }}</td>
       </tr>
       {% if t.status == 'down' and t.last_error %}
       <tr class="error-row" data-error-for="{{ t.id }}">

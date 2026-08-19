@@ -61,6 +61,27 @@ def update_target(target_id: int, values: dict) -> None:
     )
 
 
+def clone_target(target_id: int):
+    """Duplicate a target, disabled, so the copy can be re-pointed before it runs."""
+    source = get_target(target_id)
+    if source is None:
+        return None
+    values = {field: source[field] for field in TARGET_FIELDS}
+    values["name"] = _copy_name(source["name"])
+    values["enabled"] = 0
+    return create_target(values)
+
+
+def _copy_name(name: str) -> str:
+    existing = {row["name"] for row in db.query("SELECT name FROM targets")}
+    candidate = "%s (copy)" % name
+    counter = 2
+    while candidate in existing:
+        candidate = "%s (copy %d)" % (name, counter)
+        counter += 1
+    return candidate[:120]
+
+
 def delete_target(target_id: int) -> None:
     db.execute("DELETE FROM targets WHERE id = ?", (target_id,))
 

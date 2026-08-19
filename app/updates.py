@@ -6,6 +6,7 @@ Fails silently: an air-gapped host must keep monitoring and alerting normally.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import subprocess
 
@@ -16,18 +17,39 @@ from .util import parse_iso, utcnow, utcnow_iso
 log = logging.getLogger(__name__)
 
 CHECK_INTERVAL_HOURS = 6
+# A failed check retries sooner than the happy path: the usual cause is that the
+# host was offline, or the remote did not exist yet, when the app started.
+RETRY_AFTER_MINUTES = 15
 GIT_TIMEOUT_SECONDS = 20
 
-_TAG_RE = re.compile(r"refs/tags/v?(\d+)\.(\d+)\.(\d+)(?:\^\{\})?$")
+# Case-insensitive: release tags get pushed as v1.2.3 and V1.2.3 alike.
+_TAG_RE = re.compile(r"refs/tags/v?(\d+)\.(\d+)\.(\d+)(?:\^\{\})?$", re.IGNORECASE)
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 def parse_version(text):
     """'v1.2.3' -> (1, 2, 3); anything unparseable -> None."""
-    match = re.match(r"^\s*v?(\d+)\.(\d+)\.(\d+)", str(text or ""))
+    match = re.match(r"^\s*v?(\d+)\.(\d+)\.(\d+)", str(text or ""), re.IGNORECASE)
     if not match:
         return None
     return tuple(int(part) for part in match.groups())
+
+
+def _git_env():
+    """Make git fail fast instead of blocking on a credential or host-key prompt.
+
+    A service account has no console, so an interactive prompt would just hang
+    until the subprocess timeout. Inherits the real environment so PATH, HOME
+    and any ~/.ssh/config host aliases still apply.
+    """
+    env = dict(os.environ)
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GCM_INTERACTIVE"] = "Never"
+    env.setdefault(
+        "GIT_SSH_COMMAND",
+        "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10",
+    )
+    return env
 
 
 def _git_tags():
@@ -44,6 +66,7 @@ def _git_tags():
         stderr=subprocess.PIPE,
         timeout=GIT_TIMEOUT_SECONDS,
         creationflags=_NO_WINDOW,
+        env=_git_env(),
     )
     if completed.returncode != 0:
         stderr = (completed.stderr or b"").decode("utf-8", errors="replace").strip()
@@ -63,11 +86,21 @@ def check() -> bool:
         return False
     try:
         versions = _git_tags()
+    except subprocess.TimeoutExpired:
+        log.debug("Update check timed out")
+        settings.set_many({
+            "update_last_checked_at": utcnow_iso(),
+            "update_last_status": "failed",
+            "update_last_error": "git ls-remote timed out after %ds (no response from the "
+                                 "remote, or it wanted credentials)" % GIT_TIMEOUT_SECONDS,
+        })
+        return False
     except Exception as exc:  # noqa: BLE001 - offline is a normal condition here
         log.debug("Update check failed: %s", exc)
         settings.set_many({
             "update_last_checked_at": utcnow_iso(),
             "update_last_status": "failed",
+            "update_last_error": str(exc)[:500],
         })
         return False
 
@@ -75,6 +108,7 @@ def check() -> bool:
     settings.set_many({
         "update_last_checked_at": utcnow_iso(),
         "update_last_status": "ok",
+        "update_last_error": "",
         "update_latest_version": ".".join(str(part) for part in latest) if latest else "",
     })
     return True
@@ -86,8 +120,11 @@ def maybe_check() -> None:
         return
     last = parse_iso(settings.get("update_last_checked_at"))
     if last is not None:
-        elapsed_hours = (utcnow() - last).total_seconds() / 3600.0
-        if elapsed_hours < CHECK_INTERVAL_HOURS:
+        elapsed_minutes = (utcnow() - last).total_seconds() / 60.0
+        if settings.get("update_last_status") == "failed":
+            if elapsed_minutes < RETRY_AFTER_MINUTES:
+                return
+        elif elapsed_minutes < CHECK_INTERVAL_HOURS * 60:
             return
     check()
 
@@ -101,6 +138,7 @@ def status() -> dict:
         "latest_version": settings.get("update_latest_version") or None,
         "last_checked_at": settings.get("update_last_checked_at") or None,
         "last_status": settings.get("update_last_status") or None,
+        "last_error": settings.get("update_last_error") or None,
         "update_available": False,
         "text": "update check off",
     }

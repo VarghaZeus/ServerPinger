@@ -31,6 +31,7 @@ DEFAULTS = {
     "update_last_checked_at": "",
     "update_latest_version": "",
     "update_last_status": "",           # ok | failed | ""
+    "update_last_error": "",
     # --- internal ------------------------------------------------------
     "secret_key": "",
     "schema_version": "0",

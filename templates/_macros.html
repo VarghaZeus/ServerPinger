@@ -1,0 +1,74 @@
+{# Per-target action buttons, shared by the dashboard and the Targets page. #}
+
+{% macro target_actions(t) -%}
+<div class="actions">
+
+  {% if t.enabled %}
+  <form method="post" action="{{ url_for('main.target_toggle', target_id=t.id) }}" class="inline">
+    <button class="icon-btn icon-stop" title="Pause monitoring &ndash; no checks, no alerts"
+            aria-label="Pause monitoring">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="currentColor"/>
+      </svg>
+    </button>
+  </form>
+  {% else %}
+  <form method="post" action="{{ url_for('main.target_toggle', target_id=t.id) }}" class="inline">
+    <button class="icon-btn icon-start" title="Resume monitoring" aria-label="Resume monitoring">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path d="M4.5 3.2 12.4 8 4.5 12.8Z" fill="currentColor"/>
+      </svg>
+    </button>
+  </form>
+  {% endif %}
+
+  <button class="icon-btn icon-check check-now" data-id="{{ t.id }}"
+          title="Check now" aria-label="Check now">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+         stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+      <path d="M13.6 7A5.6 5.6 0 1 0 12.5 11"/>
+      <path d="M13.9 3.4V7h-3.6"/>
+    </svg>
+  </button>
+
+  <a class="icon-btn icon-info" href="{{ url_for('main.target_detail', target_id=t.id) }}"
+     title="History and details" aria-label="History and details">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+      <rect x="3.2" y="2.2" width="9.6" height="11.6" rx="1.6"/>
+      <path d="M5.8 6h4.4M5.8 8.4h4.4M5.8 10.8h2.6"/>
+    </svg>
+  </a>
+
+  <a class="icon-btn icon-edit" href="{{ url_for('main.target_edit', target_id=t.id) }}"
+     title="Edit" aria-label="Edit">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11.2 2.6 13.4 4.8 5.6 12.6 2.6 13.4l0.8-3Z"/>
+    </svg>
+  </a>
+
+  <form method="post" action="{{ url_for('main.target_clone', target_id=t.id) }}" class="inline">
+    <button class="icon-btn icon-clone"
+            title="Duplicate this target, then change the host" aria-label="Duplicate">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5.6" y="5.6" width="8" height="8" rx="1.5"/>
+        <path d="M10.4 2.4H3.9a1.5 1.5 0 0 0-1.5 1.5v6.5"/>
+      </svg>
+    </button>
+  </form>
+
+  <form method="post" action="{{ url_for('main.target_delete', target_id=t.id) }}" class="inline"
+        onsubmit="return confirm('Delete {{ t.name }} and all of its history? This cannot be undone.');">
+    <button class="icon-btn icon-delete" title="Delete" aria-label="Delete">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.8 4.4h10.4M6.4 4.4V2.9h3.2v1.5M4.2 4.4l0.6 8.2a1.2 1.2 0 0 0 1.2 1.1h4a1.2 1.2 0 0 0 1.2-1.1l0.6-8.2"/>
+        <path d="M6.7 7v4M9.3 7v4"/>
+      </svg>
+    </button>
+  </form>
+
+</div>
+{%- endmacro %}

@@ -7,6 +7,36 @@ update check can find them.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-19
+
+### Added
+
+- Per-target action buttons on the Dashboard and Targets pages: pause/resume,
+  check now, details, edit, duplicate and delete.
+- **Duplicate a target** (`POST /targets/<id>/clone`). The copy is named
+  "<name> (copy)", starts paused so it never pings the wrong host, and opens
+  straight into the edit form so only the host needs changing.
+- Forced update check: the footer status is now a button
+  (`POST /api/update-check`), and the reason for a failure is stored and shown
+  as its tooltip.
+- Pause, resume and delete return to the page they were triggered from.
+
+### Changed
+
+- Default port is now **8282** (was 8080).
+
+### Fixed
+
+- Release tags were matched case-sensitively, so a tag pushed as `V1.0.0`
+  rather than `v1.0.0` was ignored and no update was ever reported.
+- The update check could hang until its 20 s timeout when git wanted
+  credentials or an SSH host-key confirmation. It now runs with
+  `GIT_TERMINAL_PROMPT=0` and a `BatchMode=yes` SSH command, so it fails in
+  under a second instead, and reports a readable reason.
+- A failed update check now retries after 15 minutes instead of waiting the
+  full 6 hours, so a check that ran before the network (or the remote) was
+  ready recovers on its own.
+
 ## [1.0.0] - 2026-08-19
 
 First release.
