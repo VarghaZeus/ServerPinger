@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; ServerPinger{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <div class="counts">
+    <span class="pill pill-up">UP <b id="count-up">{{ counts.up }}</b></span>
+    <span class="pill pill-down">DOWN <b id="count-down">{{ counts.down }}</b></span>
+    <span class="pill pill-unknown">UNKNOWN <b id="count-unknown">{{ counts.unknown }}</b></span>
+    <a class="btn btn-primary" href="{{ url_for('main.target_new') }}">Add target</a>
+  </div>
+</div>
+
+{% if total == 0 %}
+  <div class="card empty">
+    <p>No targets yet. ServerPinger watches anything reachable &mdash; a LAN server, a Raspberry Pi,
+       a VM, or a public endpoint.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.target_new') }}">Add your first target</a>
+  </div>
+{% endif %}
+
+{% for group in groups %}
+<section class="card">
+  <h2 class="group-head">{{ group.name }} <span class="muted">({{ group.targets|length }})</span></h2>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Name</th><th>Host</th><th>Check</th><th>Status</th>
+        <th>Latency</th><th>Last checked</th><th>24h uptime</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in group.targets %}
+      <tr data-target-id="{{ t.id }}" class="{{ 'row-disabled' if not t.enabled }}">
+        <td><a href="{{ url_for('main.target_detail', target_id=t.id) }}">{{ t.name }}</a>
+            {% if not t.enabled %}<span class="chip">disabled</span>{% endif %}</td>
+        <td class="mono">{{ t.host }}</td>
+        <td class="mono">{{ t.check_type }}{% if t.port %}:{{ t.port }}{% endif %}</td>
+        <td class="cell-status"><span class="pill pill-{{ t.status }}">{{ t.status|upper }}</span></td>
+        <td class="cell-latency mono">{{ '%.1f ms'|format(t.last_latency_ms) if t.last_latency_ms is not none else '&mdash;'|safe }}</td>
+        <td class="cell-checked"><span class="ts rel" data-utc="{{ t.last_checked_at or '' }}">{{ t.last_checked_at or 'never' }}</span></td>
+        <td class="cell-uptime mono">{{ '%.2f%%'|format(t.uptime_24h) if t.uptime_24h is not none else '&mdash;'|safe }}</td>
+        <td class="right"><button class="btn btn-small check-now" data-id="{{ t.id }}">Check now</button></td>
+      </tr>
+      {% if t.status == 'down' and t.last_error %}
+      <tr class="error-row" data-error-for="{{ t.id }}">
+        <td colspan="8" class="mono error-text">{{ t.last_error }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>ServerPinger.startDashboardPoll(15000);</script>
+{% endblock %}

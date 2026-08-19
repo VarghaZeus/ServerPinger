@@ -1,0 +1,28 @@
+[Unit]
+Description=ServerPinger reachability monitor
+Documentation=https://github.com/your-org/ServerPinger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__GROUP__
+WorkingDirectory=__APPDIR__
+Environment=PYTHONUNBUFFERED=1
+Environment=SERVERPINGER_HOST=__HOST__
+Environment=SERVERPINGER_PORT=__PORT__
+Environment=SERVERPINGER_DATA=__DATADIR__
+ExecStart=__APPDIR__/.venv/bin/python __APPDIR__/run.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# The unit runs as an unprivileged user: ICMP goes through the system ping
+# binary, so no root and no CAP_NET_RAW is required.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

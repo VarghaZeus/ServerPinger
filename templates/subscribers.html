@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Subscribers &middot; ServerPinger{% endblock %}
+
+{% macro scope_fields(sub) -%}
+  <select name="scope" class="scope-select">
+    <option value="all" {{ 'selected' if sub and not sub.target_id and not sub.group_name }}>All targets</option>
+    <option value="group" {{ 'selected' if sub and sub.group_name }}>One group</option>
+    <option value="target" {{ 'selected' if sub and sub.target_id }}>One target</option>
+  </select>
+  <select name="group_name" class="scope-group">
+    <option value="">— group —</option>
+    {% for g in groups %}
+      <option value="{{ g }}" {{ 'selected' if sub and sub.group_name == g }}>{{ g }}</option>
+    {% endfor %}
+  </select>
+  <select name="target_id" class="scope-target">
+    <option value="">— target —</option>
+    {% for t in targets %}
+      <option value="{{ t.id }}" {{ 'selected' if sub and sub.target_id == t.id }}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+{%- endmacro %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Subscribers</h1>
+</div>
+
+<section class="card">
+  <h2>Add a subscriber</h2>
+  <form method="post" action="{{ url_for('main.subscriber_new') }}" class="sub-form">
+    <input type="email" name="email" placeholder="alerts@example.com" required class="mono">
+    <input type="text" name="name" placeholder="Name (optional)">
+    {{ scope_fields(none) }}
+    <label class="checkbox inline-check">
+      <input type="checkbox" name="enabled" value="1" checked><span>Enabled</span>
+    </label>
+    <button class="btn btn-primary" type="submit">Add</button>
+  </form>
+  <p class="muted small">A subscriber scoped to <b>all targets</b> is emailed about every target.
+     Group scope only covers targets in that group; target scope only covers that one host.</p>
+</section>
+
+<section class="card">
+  <h2>Current subscribers</h2>
+  {% if not subscribers %}
+    <p class="muted">Nobody is subscribed yet, so no alerts will be delivered.</p>
+  {% else %}
+  <table class="grid">
+    <thead><tr><th>Email</th><th>Name</th><th>Scope</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for s in subscribers %}
+      <tr class="{{ 'row-disabled' if not s.enabled }}">
+        <td><input form="sub-{{ s.id }}" type="email" name="email" value="{{ s.email }}" class="mono" required></td>
+        <td><input form="sub-{{ s.id }}" type="text" name="name" value="{{ s.name or '' }}"></td>
+        <td class="scope-cell">
+          <select form="sub-{{ s.id }}" name="scope" class="scope-select">
+            <option value="all" {{ 'selected' if not s.target_id and not s.group_name }}>All targets</option>
+            <option value="group" {{ 'selected' if s.group_name }}>One group</option>
+            <option value="target" {{ 'selected' if s.target_id }}>One target</option>
+          </select>
+          <select form="sub-{{ s.id }}" name="group_name" class="scope-group">
+            <option value="">— group —</option>
+            {% for g in groups %}<option value="{{ g }}" {{ 'selected' if s.group_name == g }}>{{ g }}</option>{% endfor %}
+          </select>
+          <select form="sub-{{ s.id }}" name="target_id" class="scope-target">
+            <option value="">— target —</option>
+            {% for t in targets %}<option value="{{ t.id }}" {{ 'selected' if s.target_id == t.id }}>{{ t.name }}</option>{% endfor %}
+          </select>
+        </td>
+        <td>
+          <label class="checkbox inline-check">
+            <input form="sub-{{ s.id }}" type="checkbox" name="enabled" value="1" {{ 'checked' if s.enabled }}>
+            <span>Enabled</span>
+          </label>
+        </td>
+        <td class="right nowrap">
+          <button form="sub-{{ s.id }}" class="btn btn-small btn-primary">Save</button>
+          <form method="post" action="{{ url_for('main.subscriber_toggle', subscriber_id=s.id) }}" class="inline">
+            <button class="btn btn-small">{{ 'Disable' if s.enabled else 'Enable' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('main.subscriber_delete', subscriber_id=s.id) }}" class="inline"
+                onsubmit="return confirm('Remove {{ s.email }}?');">
+            <button class="btn btn-small btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% for s in subscribers %}
+    <form method="post" action="{{ url_for('main.subscriber_edit', subscriber_id=s.id) }}" id="sub-{{ s.id }}"></form>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>ServerPinger.bindScopeSelects();</script>
+{% endblock %}

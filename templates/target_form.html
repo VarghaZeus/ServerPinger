@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Add target' if is_new else 'Edit target' }} &middot; ServerPinger{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ 'Add target' if is_new else 'Edit ' ~ target.name }}</h1>
+  <a class="btn" href="{{ url_for('main.targets') }}">Back to targets</a>
+</div>
+
+<form method="post" class="card form"
+      action="{{ url_for('main.target_new') if is_new else url_for('main.target_edit', target_id=target.id) }}">
+
+  <div class="row">
+    <label class="field">
+      <span>Name</span>
+      <input type="text" name="name" value="{{ target.name or '' }}" required maxlength="120"
+             placeholder="Plant floor PLC gateway">
+      <small>Used in email subjects and bodies.</small>
+    </label>
+    <label class="field">
+      <span>Host</span>
+      <input type="text" name="host" class="mono" value="{{ target.host or '' }}" required
+             placeholder="10.0.4.12, fd00::5, or host.example.com">
+      <small>IPv4, IPv6, hostname or FQDN. It does not have to resolve right now.</small>
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="field">
+      <span>Group</span>
+      <input type="text" name="group_name" value="{{ target.group_name or '' }}" list="group-list"
+             placeholder="Site, plant or environment (optional)">
+      <datalist id="group-list">
+        {% for g in groups %}<option value="{{ g }}">{% endfor %}
+      </datalist>
+      <small>Groups the target on the dashboard and lets you scope subscribers.</small>
+    </label>
+    <label class="field">
+      <span>Check type</span>
+      <select name="check_type" id="check-type">
+        <option value="icmp" {{ 'selected' if target.check_type == 'icmp' }}>ICMP (ping)</option>
+        <option value="tcp" {{ 'selected' if target.check_type == 'tcp' }}>TCP port connect</option>
+        <option value="http" {{ 'selected' if target.check_type == 'http' }}>HTTP(S) request</option>
+      </select>
+      <small>Plenty of hosts and firewalls silently drop ICMP. If ping fails but the
+             machine is clearly alive, use <b>TCP</b> against a port it listens on
+             (22, 445, 3389, 502&hellip;) or <b>HTTP</b> against a page it serves.</small>
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="field">
+      <span>Port</span>
+      <input type="number" name="port" class="mono" min="1" max="65535"
+             value="{{ target.port if target.port is not none else '' }}">
+      <small>Required for TCP. For HTTP, leave blank for port 80; ports 443 and 8443 are
+             treated as HTTPS.</small>
+    </label>
+    <label class="field">
+      <span>Path (HTTP)</span>
+      <input type="text" name="path" class="mono" value="{{ target.path or '/' }}" placeholder="/">
+      <small>Requested path, e.g. <span class="mono">/health</span>.</small>
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="field">
+      <span>Expected status (HTTP)</span>
+      <input type="number" name="expect_status" class="mono" min="100" max="599"
+             value="{{ target.expect_status or 200 }}">
+    </label>
+    <label class="field checkbox">
+      <input type="checkbox" name="verify_tls" value="1" {{ 'checked' if target.verify_tls }}>
+      <span>Verify TLS certificate</span>
+      <small>Turn off for internal endpoints with self-signed certificates.</small>
+    </label>
+  </div>
+
+  <div class="row three">
+    <label class="field">
+      <span>Interval (seconds)</span>
+      <input type="number" name="interval_seconds" class="mono" min="5" max="86400"
+             value="{{ target.interval_seconds or 60 }}">
+    </label>
+    <label class="field">
+      <span>Timeout (seconds)</span>
+      <input type="number" name="timeout_seconds" class="mono" min="1" max="300"
+             value="{{ target.timeout_seconds or 5 }}">
+    </label>
+    <label class="field">
+      <span>Failure threshold</span>
+      <input type="number" name="fail_threshold" class="mono" min="1" max="100"
+             value="{{ target.fail_threshold or 3 }}">
+      <small>Consecutive failures before it is declared DOWN.</small>
+    </label>
+  </div>
+
+  <label class="field">
+    <span>Notes</span>
+    <textarea name="notes" rows="3" placeholder="Anything you want to remember about this host.">{{ target.notes or '' }}</textarea>
+  </label>
+
+  <label class="field checkbox">
+    <input type="checkbox" name="enabled" value="1" {{ 'checked' if target.enabled }}>
+    <span>Enabled (actively monitored)</span>
+  </label>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">{{ 'Add target' if is_new else 'Save changes' }}</button>
+    <a class="btn" href="{{ url_for('main.targets') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

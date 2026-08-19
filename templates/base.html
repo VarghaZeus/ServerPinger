@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ServerPinger{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('main.dashboard') }}">Server<span>Pinger</span></a>
+  <nav>
+    <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if request.endpoint == 'main.dashboard' }}">Dashboard</a>
+    <a href="{{ url_for('main.targets') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('main.target') }}">Targets</a>
+    <a href="{{ url_for('main.subscribers') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('main.subscriber') }}">Subscribers</a>
+    <a href="{{ url_for('main.settings_email') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('main.settings') }}">Email settings</a>
+  </nav>
+  {% if not monitor_running %}<span class="warn-chip" title="The background monitor thread is not running">monitor stopped</span>{% endif %}
+</header>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  ServerPinger &middot; v{{ footer_version }} &middot;
+  <span class="{{ 'update-available' if footer_update.update_available else '' }}">{{ footer_update.text }}</span>
+  &middot; monitoring {{ footer_target_count }} target{{ '' if footer_target_count == 1 else 's' }}
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Targets &middot; ServerPinger{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Targets</h1>
+  <a class="btn btn-primary" href="{{ url_for('main.target_new') }}">Add target</a>
+</div>
+
+<section class="card">
+  {% if not targets %}
+    <p class="muted">No targets configured yet.</p>
+  {% else %}
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Name</th><th>Host</th><th>Group</th><th>Check</th><th>Interval</th>
+        <th>Timeout</th><th>Threshold</th><th>Status</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in targets %}
+      <tr class="{{ 'row-disabled' if not t.enabled }}">
+        <td><a href="{{ url_for('main.target_detail', target_id=t.id) }}">{{ t.name }}</a></td>
+        <td class="mono">{{ t.host }}</td>
+        <td>{{ t.group_name or '—' }}</td>
+        <td class="mono">{{ t.check_type }}{% if t.port %}:{{ t.port }}{% endif %}{% if t.check_type == 'http' %}{{ t.path }}{% endif %}</td>
+        <td class="mono">{{ t.interval_seconds }}s</td>
+        <td class="mono">{{ t.timeout_seconds }}s</td>
+        <td class="mono">{{ t.fail_threshold }}</td>
+        <td><span class="pill pill-{{ (t.status or 'unknown') if t.enabled else 'unknown' }}">{{ ((t.status or 'unknown') if t.enabled else 'unknown')|upper }}</span></td>
+        <td class="right nowrap">
+          <a class="btn btn-small" href="{{ url_for('main.target_edit', target_id=t.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('main.target_toggle', target_id=t.id) }}" class="inline">
+            <button class="btn btn-small">{{ 'Disable' if t.enabled else 'Enable' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('main.target_delete', target_id=t.id) }}" class="inline"
+                onsubmit="return confirm('Delete {{ t.name }} and all of its history?');">
+            <button class="btn btn-small btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endblock %}

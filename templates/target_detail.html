@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ target.name }} &middot; ServerPinger{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ target.name }}
+    <span class="pill pill-{{ (target.status or 'unknown') if target.enabled else 'unknown' }}">
+      {{ ((target.status or 'unknown') if target.enabled else 'unknown')|upper }}</span>
+  </h1>
+  <div class="nowrap">
+    <button class="btn check-now" data-id="{{ target.id }}">Check now</button>
+    <a class="btn" href="{{ url_for('main.target_edit', target_id=target.id) }}">Edit</a>
+    <a class="btn" href="{{ url_for('main.targets') }}">All targets</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="facts">
+    <div><span>Host</span><b class="mono">{{ target.host }}</b></div>
+    <div><span>Check</span><b class="mono">{{ target.check_type }}{% if target.port %}:{{ target.port }}{% endif %}</b></div>
+    {% if http_url %}<div><span>URL</span><b class="mono">{{ http_url }}</b></div>{% endif %}
+    <div><span>Group</span><b>{{ target.group_name or '—' }}</b></div>
+    <div><span>Interval</span><b class="mono">{{ target.interval_seconds }}s</b></div>
+    <div><span>Timeout</span><b class="mono">{{ target.timeout_seconds }}s</b></div>
+    <div><span>Fail threshold</span><b class="mono">{{ target.fail_threshold }}</b></div>
+    <div><span>Consecutive failures</span><b class="mono">{{ target.consecutive_failures or 0 }}</b></div>
+    <div><span>Last latency</span><b class="mono">{{ '%.1f ms'|format(target.last_latency_ms) if target.last_latency_ms is not none else '—' }}</b></div>
+    <div><span>Last checked</span><b>{{ target.last_checked_at|localtime }}</b></div>
+    <div><span>Last up</span><b>{{ target.last_up_at|localtime }}</b></div>
+    <div><span>Last down</span><b>{{ target.last_down_at|localtime }}</b></div>
+    <div><span>Uptime 24h</span><b class="mono">{{ '%.2f%%'|format(uptime_24h) if uptime_24h is not none else '—' }}</b></div>
+    <div><span>Uptime 7d</span><b class="mono">{{ '%.2f%%'|format(uptime_7d) if uptime_7d is not none else '—' }}</b></div>
+  </div>
+  {% if target.last_error %}
+    <p class="error-text mono">{{ target.last_error }}</p>
+  {% endif %}
+  {% if target.notes %}
+    <p class="notes">{{ target.notes }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Latency</h2>
+  <p class="muted small">Newest on the right. Red bars are failed checks.</p>
+  {{ sparkline }}
+</section>
+
+<section class="card">
+  <h2>Recent checks</h2>
+  {% if not history %}
+    <p class="muted">Nothing recorded yet.</p>
+  {% else %}
+  <table class="grid">
+    <thead><tr><th>When</th><th>Result</th><th>Latency</th><th>Error</th></tr></thead>
+    <tbody>
+      {% for h in history %}
+      <tr>
+        <td>{{ h.checked_at|localtime }}</td>
+        <td><span class="pill pill-{{ 'up' if h.ok else 'down' }}">{{ 'OK' if h.ok else 'FAIL' }}</span></td>
+        <td class="mono">{{ '%.1f ms'|format(h.latency_ms) if h.latency_ms is not none else '—' }}</td>
+        <td class="mono error-text">{{ h.error or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>ServerPinger.bindCheckNow(function () { window.location.reload(); });</script>
+{% endblock %}

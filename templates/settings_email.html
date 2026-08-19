@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Email settings &middot; ServerPinger{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Email settings</h1>
+</div>
+
+{% if s.last_email_error %}
+<div class="card error-card">
+  <b>Last send failed</b>
+  <p class="mono error-text">{{ s.last_email_error }}</p>
+  <p class="muted small">at {{ s.last_email_error_at|localtime }}</p>
+</div>
+{% elif s.last_email_sent_at %}
+<div class="card ok-card">
+  <span class="muted small">Last message sent {{ s.last_email_sent_at|localtime }}.</span>
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('main.settings_email') }}" class="card form" id="email-form">
+  <label class="field">
+    <span>SMTP mode</span>
+    <select name="smtp_mode" id="smtp-mode">
+      <option value="internal_relay" {{ 'selected' if s.smtp_mode == 'internal_relay' }}>Internal relay (no auth, port 25)</option>
+      <option value="smtp_auth" {{ 'selected' if s.smtp_mode == 'smtp_auth' }}>SMTP AUTH (username &amp; password)</option>
+    </select>
+    <small class="mode-help" data-mode="internal_relay">
+      <b>Internal relay:</b> your organisation's mail-protection host on port 25, no credentials.
+      Only works when sending from a trusted internal IP to an internal mailbox.
+    </small>
+    <small class="mode-help" data-mode="smtp_auth">
+      <b>SMTP AUTH:</b> a normal authenticated server, for example
+      <span class="mono">smtp.office365.com:587</span> with a username and password.
+    </small>
+  </label>
+
+  <div class="row">
+    <label class="field">
+      <span>SMTP host</span>
+      <input type="text" name="smtp_host" class="mono" value="{{ s.smtp_host }}"
+             placeholder="mail.example.com">
+    </label>
+    <label class="field">
+      <span>SMTP port</span>
+      <input type="number" name="smtp_port" class="mono" min="1" max="65535" value="{{ s.smtp_port }}">
+    </label>
+  </div>
+
+  <label class="field">
+    <span>Security</span>
+    <select name="smtp_security" id="smtp-security">
+      <option value="none" {{ 'selected' if s.smtp_security == 'none' }}>None (plain, port 25)</option>
+      <option value="starttls" {{ 'selected' if s.smtp_security == 'starttls' }}>STARTTLS</option>
+      <option value="ssl" {{ 'selected' if s.smtp_security == 'ssl' }}>SSL/TLS</option>
+    </select>
+  </label>
+
+  <div class="row auth-only">
+    <label class="field">
+      <span>Username</span>
+      <input type="text" name="smtp_username" class="mono" autocomplete="off" value="{{ s.smtp_username }}">
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input type="password" name="smtp_password" autocomplete="new-password"
+             placeholder="{{ '•••••••• (unchanged)' if has_password else 'not set' }}">
+      <small>Leave blank to keep the stored password.</small>
+    </label>
+  </div>
+
+  <label class="field">
+    <span>From address</span>
+    <input type="text" name="smtp_from" class="mono" value="{{ s.smtp_from }}"
+           placeholder="ServerPinger &lt;alerts@example.com&gt;">
+    <small>Accepts a bare address or <span class="mono">Display Name &lt;addr@domain&gt;</span>.</small>
+  </label>
+
+  <div class="row three">
+    <label class="field">
+      <span>Enabled</span>
+      <select name="email_enabled">
+        <option value="1" {{ 'selected' if s.email_enabled in ('1', 1, 'true') }}>Yes</option>
+        <option value="0" {{ 'selected' if s.email_enabled not in ('1', 1, 'true') }}>No</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Crash-reminder throttle (hours)</span>
+      <input type="number" name="crash_reminder_hours" class="mono" min="0" max="8760"
+             value="{{ s.crash_reminder_hours }}">
+      <small>While a target stays down, at most one reminder per this many hours.</small>
+    </label>
+    <label class="field">
+      <span>Send recovery emails</span>
+      <select name="send_recovery_emails">
+        <option value="1" {{ 'selected' if s.send_recovery_emails in ('1', 1, 'true') }}>Yes</option>
+        <option value="0" {{ 'selected' if s.send_recovery_emails not in ('1', 1, 'true') }}>No</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="field">
+      <span>Check for updates</span>
+      <select name="update_check_enabled">
+        <option value="1" {{ 'selected' if s.update_check_enabled in ('1', 1, 'true') }}>Yes</option>
+        <option value="0" {{ 'selected' if s.update_check_enabled not in ('1', 1, 'true') }}>No</option>
+      </select>
+      <small>Fails silently when offline; monitoring and alerting carry on regardless.</small>
+    </label>
+    <label class="field">
+      <span>Update repository URL</span>
+      <input type="text" name="update_repo_url" class="mono" value="{{ s.update_repo_url }}"
+             placeholder="blank = the git 'origin' of this checkout">
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Save email settings</button>
+  </div>
+</form>
+
+<section class="card">
+  <h2>Send a test email</h2>
+  <form method="post" action="{{ url_for('main.settings_email_test') }}" class="sub-form">
+    <input type="email" name="test_recipient" class="mono" placeholder="you@example.com" required>
+    <button class="btn btn-primary" type="submit">Send test</button>
+  </form>
+  <p class="muted small">Alert recipients are managed on the
+     <a href="{{ url_for('main.subscribers') }}">Subscribers</a> page. This only verifies that the
+     mail server accepts messages from this host. On failure the actual SMTP error is shown.</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>ServerPinger.bindEmailSettings();</script>
+{% endblock %}
