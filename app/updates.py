@@ -52,13 +52,39 @@ def _git_env():
     return env
 
 
+def _origin_url():
+    """The 'origin' URL of the checkout we are running from, or None."""
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(APP_ROOT), "remote", "get-url", "origin"],
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=GIT_TIMEOUT_SECONDS,
+            creationflags=_NO_WINDOW,
+            env=_git_env(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    return (completed.stdout or b"").decode("utf-8", errors="replace").strip() or None
+
+
 def _git_tags():
     repo_url = (settings.get("update_repo_url") or "").strip()
-    command = ["git", "ls-remote", "--tags", "--refs"]
-    if repo_url:
-        command.append(repo_url)
-    else:
-        command = ["git", "-C", str(APP_ROOT), "ls-remote", "--tags", "--refs", "origin"]
+    if not repo_url:
+        # Fall back to the checkout's own remote, but say something useful when
+        # this copy was deployed by copying files rather than by cloning.
+        repo_url = _origin_url()
+        if not repo_url:
+            raise RuntimeError(
+                "no update repository configured: %s is not a git checkout with an "
+                "'origin' remote. Set the Update repository URL on the Email "
+                "settings page (for example "
+                "https://github.com/<owner>/<repo>.git)." % APP_ROOT
+            )
+    command = ["git", "ls-remote", "--tags", "--refs", repo_url]
     completed = subprocess.run(
         command,
         shell=False,

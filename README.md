@@ -328,6 +328,19 @@ does not have to resolve when you add it, because it may legitimately be down.
   `update check failed` · `update check off`.
 - The repo URL and whether checking runs at all are configurable on the Email
   settings page. Leave the URL blank to use the `origin` of this checkout.
+- **If you deployed by copying files rather than cloning**, there is no `origin`
+  to ask, and the footer will read `update check failed`. Hover it for the
+  reason. Fix it by setting the Update repository URL explicitly:
+
+  ```
+  https://github.com/<owner>/<repo>.git
+  ```
+
+  Prefer the anonymous HTTPS URL over an SSH one (`git@github.com:...` or a
+  `~/.ssh/config` host alias). The check is read-only and needs no key, whereas
+  a service account — `SYSTEM` on Windows, the unprivileged unit user on Linux —
+  has neither your SSH key nor your SSH config, so an SSH remote that works in
+  your own shell will fail under the service.
 - **It fails silently when offline.** An air-gapped host keeps monitoring and
   alerting normally.
 - Updating is manual: run `deploy/update.sh` or `deploy\update.ps1`. There is no

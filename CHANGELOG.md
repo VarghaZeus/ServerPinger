@@ -36,6 +36,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - A failed update check now retries after 15 minutes instead of waiting the
   full 6 hours, so a check that ran before the network (or the remote) was
   ready recovers on its own.
+- When the app was deployed by copying files instead of cloning, the update
+  check reported git's cryptic "'origin' does not appear to be a git
+  repository". It now resolves the origin URL first and, when there is none,
+  names the directory it looked in and points at the Update repository URL
+  setting.
 
 ## [1.0.0] - 2026-08-19
 
